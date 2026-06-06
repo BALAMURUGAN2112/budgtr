@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Budgtr" />
+  <title>Budgtr</title>
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --muted: #666;
+      --income: #00e5a0;
+      --expense: #ff4d6d;
+      --accent: #f5c518;
+      --radius: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* Header */
+    .header {
+      padding: 56px 24px 24px;
+      position: relative;
+    }
+
+    .header-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .header-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent);
+    }
+
+    /* Balance Card */
+    .balance-card {
+      margin: 0 16px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .balance-card::after {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,197,24,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .balance-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .balance-amount {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+
+    .balance-amount.positive { color: var(--income); }
+    .balance-amount.negative { color: var(--expense); }
+    .balance-amount.zero { color: var(--text); }
+
+    .balance-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .stat-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .stat-label.income { color: var(--income); }
+    .stat-label.expense { color: var(--expense); }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* Month Selector */
+    .month-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px 20px;
+    }
+
+    .month-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .month-btn:active { background: var(--surface2); }
+
+    .month-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 20px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    /* Transaction List */
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 0 20px 12px;
+    }
+
+    .transactions {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 120px;
+    }
+
+    .tx-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tx-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .tx-icon.income { background: rgba(0,229,160,0.1); }
+    .tx-icon.expense { background: rgba(255,77,109,0.1); }
+
+    .tx-info { flex: 1; min-width: 0; }
+
+    .tx-name {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tx-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .tx-amount {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .tx-amount.income { color: var(--income); }
+    .tx-amount.expense { color: var(--expense); }
+
+    .tx-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .emoji { font-size: 48px; margin-bottom: 16px; }
+    .empty-state p { font-family: 'Space Mono', monospace; font-size: 12px; line-height: 1.8; }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 32px;
+      right: 24px;
+      width: 60px; height: 60px;
+      border-radius: 18px;
+      background: var(--accent);
+      border: none;
+      font-size: 28px;
+      color: #000;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 32px rgba(245,197,24,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 100;
+    }
+
+    .fab:active { transform: scale(0.93); box-shadow: 0 4px 16px rgba(245,197,24,0.3); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px 24px 0 0;
+      padding: 32px 24px 48px;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .modal-overlay.open .modal {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 28px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 24px;
+    }
+
+    .type-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .type-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+
+    .type-btn.income.active { background: rgba(0,229,160,0.15); color: var(--income); border-color: var(--income); }
+    .type-btn.expense.active { background: rgba(255,77,109,0.15); color: var(--expense); border-color: var(--expense); }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .input-field {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-field:focus { border-color: var(--accent); }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .cat-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .cat-btn.active { border-color: var(--accent); background: rgba(245,197,24,0.1); }
+    .cat-btn .cat-emoji { font-size: 20px; display: block; margin-bottom: 4px; }
+    .cat-btn .cat-name { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .submit-btn:active { transform: scale(0.98); }
+
+    /* Chart bar */
+    .chart-bar {
+      padding: 0 16px 24px;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 80px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-fill {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.4s ease;
+    }
+
+    .bar-fill.income-bar { background: var(--income); opacity: 0.7; }
+    .bar-fill.expense-bar { background: var(--expense); opacity: 0.7; }
+
+    .bar-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Personal Finance</div>
+  <div class="header-title">Budgtr</div>
+</div>
+
+<div class="balance-card">
+  <div class="balance-label">Net Balance</div>
+  <div class="balance-amount zero" id="balance">$0.00</div>
+  <div class="balance-stats">
+    <div class="stat">
+      <div class="stat-label income">▲ Income</div>
+      <div class="stat-value" id="total-income">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label expense">▼ Expenses</div>
+      <div class="stat-value" id="total-expense">$0</div>
+    </div>
+  </div>
+</div>
+
+<div class="month-bar">
+  <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+  <span class="month-label" id="month-label">JUN 2026</span>
+  <button class="month-btn" onclick="changeMonth(1)">›</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="setTab('all', this)">All</button>
+  <button class="tab" onclick="setTab('income', this)">Income</button>
+  <button class="tab" onclick="setTab('expense', this)">Expenses</button>
+</div>
+
+<div class="section-title">Transactions</div>
+<div class="transactions" id="tx-list"></div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Transaction</div>
+
+    <div class="type-toggle">
+      <button class="type-btn expense active" id="btn-expense" onclick="setType('expense')">▼ Expense</button>
+      <button class="type-btn income" id="btn-income" onclick="setType('income')">▲ Income</button>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">Amount</label>
+      <input class="input-field" type="number" id="input-amount" placeholder="0.00" min="0" step="0.01" />
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">Description</label>
+      <input class="input-field" type="text" id="input-desc" placeholder="What was this for?" maxlength="40" />
+    </div>
+
+    <div class="input-label" style="margin-bottom:10px">Category</div>
+    <div class="category-grid" id="cat-grid"></div>
+
+    <button class="submit-btn" onclick="addTransaction()">Add Transaction</button>
+  </div>
+</div>
+
+<script>
+  const CATEGORIES = {
+    expense: [
+      { emoji: '🍔', name: 'Food' },
+      { emoji: '🚗', name: 'Transport' },
+      { emoji: '🛍️', name: 'Shopping' },
+      { emoji: '💡', name: 'Bills' },
+      { emoji: '🎬', name: 'Entertain' },
+      { emoji: '💊', name: 'Health' },
+      { emoji: '📚', name: 'Education' },
+      { emoji: '🏠', name: 'Home' },
+    ],
+    income: [
+      { emoji: '💼', name: 'Salary' },
+      { emoji: '💻', name: 'Freelance' },
+      { emoji: '📈', name: 'Invest' },
+      { emoji: '🎁', name: 'Gift' },
+      { emoji: '🏦', name: 'Savings' },
+      { emoji: '🤝', name: 'Business' },
+      { emoji: '🎰', name: 'Bonus' },
+      { emoji: '💰', name: 'Other' },
+    ]
+  };
+
+  let transactions = JSON.parse(localStorage.getItem('budgtr_txs') || '[]');
+  let currentType = 'expense';
+  let currentCategory = 0;
+  let currentTab = 'all';
+  let currentDate = new Date();
+
+  function save() {
+    localStorage.setItem('budgtr_txs', JSON.stringify(transactions));
+  }
+
+  function fmt(n) {
+    return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function getMonthKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  function changeMonth(dir) {
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1);
+    render();
+  }
+
+  function updateMonthLabel() {
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    document.getElementById('month-label').textContent =
+      `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  }
+
+  function setTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function render() {
+    updateMonthLabel();
+    const key = getMonthKey(currentDate);
+    const monthTxs = transactions.filter(t => t.month === key);
+    
+    const income = monthTxs.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+    const expense = monthTxs.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+    const balance = income - expense;
+
+    const balEl = document.getElementById('balance');
+    balEl.textContent = (balance < 0 ? '-' : '') + fmt(balance);
+    balEl.className = 'balance-amount ' + (balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'zero');
+
+    document.getElementById('total-income').textContent = fmt(income);
+    document.getElementById('total-expense').textContent = fmt(expense);
+
+    const filtered = currentTab === 'all' ? monthTxs :
+                     monthTxs.filter(t => t.type === currentTab);
+    
+    const list = document.getElementById('tx-list');
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="emoji">📊</div>
+        <p>No transactions yet.<br>Tap + to add one.</p>
+      </div>`;
+      return;
+    }
+
+    const sorted = [...filtered].sort((a,b) => b.id - a.id);
+    list.innerHTML = sorted.map(t => `
+      <div class="tx-item">
+        <div class="tx-icon ${t.type}">${t.emoji}</div>
+        <div class="tx-info">
+          <div class="tx-name">${t.desc}</div>
+          <div class="tx-meta">${t.category} · ${t.date}</div>
+        </div>
+        <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</div>
+        <button class="tx-delete" onclick="deleteTransaction(${t.id})">×</button>
+      </div>
+    `).join('');
+  }
+
+  function deleteTransaction(id) {
+    transactions = transactions.filter(t => t.id !== id);
+    save();
+    render();
+  }
+
+  function openModal() {
+    document.getElementById('modal-overlay').classList.add('open');
+    renderCatGrid();
+    setTimeout(() => document.getElementById('input-amount').focus(), 300);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.getElementById('input-amount').value = '';
+    document.getElementById('input-desc').value = '';
+    currentCategory = 0;
+    renderCatGrid();
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  function setType(type) {
+    currentType = type;
+    currentCategory = 0;
+    document.getElementById('btn-expense').className = 'type-btn expense' + (type === 'expense' ? ' active' : '');
+    document.getElementById('btn-income').className = 'type-btn income' + (type === 'income' ? ' active' : '');
+    renderCatGrid();
+  }
+
+  function renderCatGrid() {
+    const cats = CATEGORIES[currentType];
+    document.getElementById('cat-grid').innerHTML = cats.map((c, i) => `
+      <button class="cat-btn ${i === currentCategory ? 'active' : ''}" onclick="selectCat(${i})">
+        <span class="cat-emoji">${c.emoji}</span>
+        <span class="cat-name">${c.name}</span>
+      </button>
+    `).join('');
+  }
+
+  function selectCat(i) {
+    currentCategory = i;
+    renderCatGrid();
+  }
+
+  function addTransaction() {
+    const amount = parseFloat(document.getElementById('input-amount').value);
+    const desc = document.getElementById('input-desc').value.trim();
+    if (!amount || amount <= 0 || !desc) {
+      document.getElementById('input-amount').style.borderColor = '#ff4d6d';
+      setTimeout(() => document.getElementById('input-amount').style.borderColor = '', 1000);
+      return;
+    }
+    const cat = CATEGORIES[currentType][currentCategory];
+    const now = new Date();
+    const tx = {
+      id: Date.now(),
+      type: currentType,
+      amount,
+      desc,
+      emoji: cat.emoji,
+      category: cat.name,
+      month: getMonthKey(currentDate),
+      date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    };
+    transactions.push(tx);
+    save();
+    closeModal();
+    currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    render();
+  }
+
+  // Init
+  render();
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
