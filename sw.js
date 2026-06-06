@@ -1,5 +1,5 @@
-const CACHE = 'budgtr-v2';
-const ASSETS = ['/budgtr/', '/budgtr/index.html'];
+const CACHE = 'budgtr-v3';
+const ASSETS = ['/budgtr/', '/budgtr/index.html', '/budgtr/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
