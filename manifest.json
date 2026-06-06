@@ -2,7 +2,7 @@
   "name": "Budgtr - Budget Tracker",
   "short_name": "Budgtr",
   "description": "Track your income and expenses",
-  "start_url": "/budgtr/",
+  "start_url": "/budgtr/index.html", 
   "scope": "/budgtr/",
   "display": "standalone",
   "background_color": "#0a0a0a",
